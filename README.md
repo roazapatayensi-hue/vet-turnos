@@ -132,3 +132,7 @@ classDiagram
 ```
 
 En el diagrama, `-peso` y `-pacientes` representan los campos privados de JavaScript `#peso` y `#pacientes`. `Mascota` es abstracta por convención y comprobaciones de ejecución: JavaScript no tiene una palabra clave `abstract` para clases.
+
+## Autor
+
+[roazapatayensi-hue](https://github.com/roazapatayensi-hue) — [276148266+roazapatayensi-hue@users.noreply.github.com](mailto:276148266+roazapatayensi-hue@users.noreply.github.com)
