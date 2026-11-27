@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Abstracción y encapsulamiento en Vet Turnos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #f6f7f5; --surface: #ffffff; --fg: #1d2623; --muted: #5c6a65;
+    --line: #c9d1cd; --accent: #0b7a6b; --accent-soft: #e0f1ee;
+    --lock: #9a4b00; --lock-soft: #fdf0e1;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-code: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121816; --surface: #19211e; --fg: #e4ebe8; --muted: #9aaaa4;
+      --line: #35423d; --accent: #4fd1bc; --accent-soft: #163530;
+      --lock: #f0a65a; --lock-soft: #3a2a17; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121816; --surface: #19211e; --fg: #e4ebe8; --muted: #9aaaa4;
+    --line: #35423d; --accent: #4fd1bc; --accent-soft: #163530;
+    --lock: #f0a65a; --lock-soft: #3a2a17; color-scheme: dark;
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body);
+    font-size: 15px; line-height: 1.55; padding-block: 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+  h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 6px; text-wrap: balance; }
+  h2.sec { font-size: 1.15rem; margin: 0; }
+  .lede { margin: 0; color: var(--muted); max-width: 65ch; }
+  .scroll { overflow-x: auto; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+  svg { display: block; width: 100%; min-width: 720px; height: auto; }
+  figcaption { color: var(--muted); max-width: 70ch; }
+  code { font-family: var(--font-code); font-size: 0.9em; }
+  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .points div { min-width: 0; border-top: 2px solid var(--accent); padding-top: 10px; }
+  .points.lock div { border-top-color: var(--lock); }
+  .points h3 { font-size: 0.95rem; margin: 0 0 4px; }
+  .points p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+  svg text { fill: var(--fg); font-family: var(--font-body); font-size: 12.5px; }
+  svg .code { font-family: var(--font-code); font-size: 12px; }
+  svg .title { font-weight: 600; font-size: 14px; }
+  svg .dim { fill: var(--muted); }
+  svg .acc { fill: var(--accent); }
+  svg .lk { fill: var(--lock); }
+  svg .box { fill: var(--surface); stroke: var(--fg); stroke-width: 1.2; }
+  svg .abs { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 7 4; }
+  svg .priv { fill: var(--lock-soft); stroke: var(--lock); stroke-width: 2; }
+  svg .wall { stroke: var(--lock); stroke-width: 3; }
+  svg .rule { stroke: var(--line); stroke-width: 1; }
+  svg .flow { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+  svg .make { stroke: var(--muted); stroke-width: 1.3; fill: none; stroke-dasharray: 5 4; }
+  svg .contract { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  svg .inherit { stroke: var(--fg); stroke-width: 1.3; fill: none; }
+  svg .blocked { stroke: var(--lock); stroke-width: 1.6; fill: none; stroke-dasharray: 4 4; }
+  svg .head-flow { fill: var(--muted); }
+  svg .head-contract { fill: var(--accent); }
+  svg .head-inherit { fill: var(--bg); stroke: var(--fg); stroke-width: 1.3; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Abstracción y encapsulamiento en Vet Turnos</h1>
+    <p class="lede">El código que dibuja la lista nunca pregunta si el paciente es un perro o un gato: solo conoce el contrato de <code>Mascota</code>. Y nadie fuera de las clases puede tocar el peso ni la lista de pacientes sin pasar por sus reglas.</p>
+  </header>
+
+  <h2 class="sec">1. Abstracción: un contrato, varias implementaciones</h2>
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 960 420" role="img" aria-label="Dibujar llama a hacerSonido() sobre el contrato abstracto Mascota. Perro y Gato extienden Mascota y lo implementan. Solo el manejador del formulario conoce las clases concretas y las crea con new.">
+        <defs>
+          <marker id="a-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><polygon class="head-flow" points="0,0 10,5 0,10"/></marker>
+          <marker id="a-contract" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><polygon class="head-contract" points="0,0 10,5 0,10"/></marker>
+          <marker id="a-inherit" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="11" markerHeight="11" orient="auto"><polygon class="head-inherit" points="1,1 11,6 1,11"/></marker>
+        </defs>
+
+        <text x="20" y="22" class="dim">CÓDIGO CLIENTE</text>
+        <text x="360" y="22" class="dim">ABSTRACCIÓN</text>
+        <text x="700" y="22" class="dim">IMPLEMENTACIONES</text>
+
+        <rect x="20" y="50" width="220" height="70" rx="3" class="box"/>
+        <text x="34" y="74" class="title">dibujar()</text>
+        <text x="34" y="94" class="code">m.hacerSonido()</text>
+        <text x="34" y="110" class="dim">para cada m de pacientes</text>
+
+        <rect x="20" y="170" width="220" height="56" rx="3" class="box"/>
+        <text x="34" y="194" class="title">clinica.pacientes</text>
+        <text x="34" y="212" class="code">Mascota[]</text>
+
+        <rect x="20" y="320" width="220" height="80" rx="3" class="box"/>
+        <text x="34" y="344" class="title">submit del formulario</text>
+        <text x="34" y="364" class="code">tipo === "perro"</text>
+        <text x="34" y="380" class="code">? new Perro : new Gato</text>
+
+        <line x1="130" y1="320" x2="130" y2="228" class="flow" marker-end="url(#a-flow)"/>
+        <text x="140" y="280" class="dim">registrar(mascota)</text>
+        <line x1="130" y1="170" x2="130" y2="122" class="flow" marker-end="url(#a-flow)"/>
+        <text x="140" y="150" class="dim">lee la lista</text>
+
+        <rect x="360" y="50" width="260" height="200" rx="3" class="abs"/>
+        <text x="376" y="74" class="title">Mascota</text>
+        <text x="448" y="74" class="dim">«abstracta»</text>
+        <line x1="360" y1="86" x2="620" y2="86" class="rule"/>
+        <text x="376" y="106" class="code">nombre, #peso</text>
+        <line x1="360" y1="120" x2="620" y2="120" class="rule"/>
+        <text x="376" y="140" class="code acc">hacerSonido()</text>
+        <text x="376" y="157" class="dim">contrato: lanza Error si una</text>
+        <text x="376" y="173" class="dim">subclase no lo sobrescribe</text>
+        <line x1="360" y1="188" x2="620" y2="188" class="rule"/>
+        <text x="376" y="208" class="code">constructor()</text>
+        <text x="376" y="225" class="dim">new.target === Mascota</text>
+        <text x="376" y="241" class="dim">lanza TypeError</text>
+
+        <line x1="240" y1="85" x2="358" y2="85" class="contract" marker-end="url(#a-contract)"/>
+        <text x="249" y="76" class="code acc">depende de</text>
+
+        <rect x="700" y="50" width="200" height="80" rx="3" class="box"/>
+        <text x="714" y="74" class="title">Perro</text>
+        <text x="714" y="96" class="code">hacerSonido()</text>
+        <text x="714" y="114" class="dim">devuelve “Guau Guau”</text>
+
+        <rect x="700" y="190" width="200" height="80" rx="3" class="box"/>
+        <text x="714" y="214" class="title">Gato</text>
+        <text x="714" y="236" class="code">hacerSonido()</text>
+        <text x="714" y="254" class="dim">devuelve “Miau Miau”</text>
+
+        <line x1="700" y1="90" x2="622" y2="90" class="inherit" marker-end="url(#a-inherit)"/>
+        <text x="632" y="80" class="dim">extends</text>
+        <line x1="700" y1="230" x2="622" y2="230" class="inherit" marker-end="url(#a-inherit)"/>
+        <text x="632" y="220" class="dim">extends</text>
+
+        <polyline points="240,360 800,360 800,272" class="make" marker-end="url(#a-flow)"/>
+        <polyline points="640,360 935,360 935,90 902,90" class="make" marker-end="url(#a-flow)"/>
+        <text x="260" y="352" class="code">new Perro(nombre, peso)  /  new Gato(nombre, peso)</text>
+        <text x="260" y="388" class="dim">único punto del programa que nombra las clases concretas</text>
+      </svg>
+    </div>
+    <figcaption>Flechas sólidas verdes: dependencia de uso, que termina en el contrato. Triángulo hueco: herencia. Punteadas: creación de objetos, el único lugar donde aparece <code>Perro</code> o <code>Gato</code>.</figcaption>
+  </figure>
+
+  <section class="points" aria-label="Qué hace la abstracción">
+    <div>
+      <h3>La clase base no se puede usar sola</h3>
+      <p><code>new Mascota()</code> falla con <code>TypeError</code>, porque <code>new.target</code> detecta la creación directa.</p>
+    </div>
+    <div>
+      <h3>El contrato obliga a implementar</h3>
+      <p>Si una subclase olvida <code>hacerSonido()</code>, la llamada lanza un <code>Error</code> en vez de devolver algo vacío.</p>
+    </div>
+    <div>
+      <h3>Agregar un animal toca un solo lugar</h3>
+      <p>Una clase nueva que extienda <code>Mascota</code> y una rama en el formulario. <code>dibujar()</code> no cambia.</p>
+    </div>
+  </section>
+
+  <h2 class="sec">2. Encapsulamiento: el estado privado solo se toca por la puerta pública</h2>
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 960 400" role="img" aria-label="El código externo solo accede al peso de Mascota mediante el getter y setter públicos, que validan antes de escribir en el campo privado #peso. Del mismo modo, accede a Clinica mediante registrar y el getter pacientes, que devuelve una copia del arreglo privado #pacientes. El acceso directo a campos privados desde fuera es un error de sintaxis.">
+        <defs>
+          <marker id="b-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><polygon class="head-flow" points="0,0 10,5 0,10"/></marker>
+          <marker id="b-contract" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><polygon class="head-contract" points="0,0 10,5 0,10"/></marker>
+        </defs>
+
+        <text x="20" y="22" class="dim">CÓDIGO EXTERNO</text>
+        <text x="330" y="22" class="dim">INTERFAZ PÚBLICA</text>
+        <text x="730" y="22" class="lk">ESTADO PRIVADO (#)</text>
+
+        <!-- row 1: Mascota -->
+        <text x="20" y="48" class="title">Mascota</text>
+        <rect x="20" y="58" width="220" height="100" rx="3" class="box"/>
+        <text x="34" y="82" class="title">formulario / dibujar()</text>
+        <text x="34" y="104" class="code">new Perro(nombre, peso)</text>
+        <text x="34" y="124" class="code">m.peso = 12.5</text>
+        <text x="34" y="144" class="code">`${m.peso} kg`</text>
+
+        <rect x="330" y="58" width="270" height="130" rx="3" class="abs"/>
+        <text x="346" y="82" class="code acc">get peso()</text>
+        <text x="440" y="82" class="dim">devuelve #peso</text>
+        <line x1="330" y1="96" x2="600" y2="96" class="rule"/>
+        <text x="346" y="116" class="code acc">set peso(valor)</text>
+        <text x="346" y="136" class="dim">valida: typeof number, &gt; 0,</text>
+        <text x="346" y="152" class="dim">no NaN. Si falla, TypeError</text>
+        <text x="346" y="174" class="dim">el constructor también lo usa</text>
+
+        <rect x="740" y="78" width="180" height="70" rx="3" class="priv"/>
+        <text x="754" y="104" class="code lk">#peso</text>
+        <text x="754" y="124" class="dim">solo visible dentro de</text>
+        <text x="754" y="138" class="dim">la clase Mascota</text>
+
+        <line x1="240" y1="108" x2="328" y2="108" class="contract" marker-end="url(#b-contract)"/>
+        <line x1="602" y1="113" x2="738" y2="113" class="flow" marker-end="url(#b-flow)"/>
+        <text x="624" y="104" class="dim">si es válido</text>
+
+        <!-- row 2: Clinica -->
+        <text x="20" y="228" class="title">Clinica</text>
+        <rect x="20" y="238" width="220" height="100" rx="3" class="box"/>
+        <text x="34" y="262" class="title">código externo</text>
+        <text x="34" y="284" class="code">clinica.registrar(m)</text>
+        <text x="34" y="304" class="code">clinica.pacientes</text>
+        <text x="34" y="324" class="dim">recibe una copia</text>
+
+        <rect x="330" y="238" width="270" height="130" rx="3" class="abs"/>
+        <text x="346" y="262" class="code acc">registrar(mascota)</text>
+        <text x="346" y="280" class="dim">exige instanceof Mascota,</text>
+        <text x="346" y="296" class="dim">si no lanza TypeError</text>
+        <line x1="330" y1="308" x2="600" y2="308" class="rule"/>
+        <text x="346" y="328" class="code acc">get pacientes()</text>
+        <text x="346" y="346" class="dim">devuelve [...#pacientes],</text>
+        <text x="346" y="360" class="dim">una copia, no el original</text>
+
+        <rect x="740" y="258" width="180" height="70" rx="3" class="priv"/>
+        <text x="754" y="284" class="code lk">#pacientes</text>
+        <text x="754" y="304" class="dim">arreglo que nadie puede</text>
+        <text x="754" y="318" class="dim">reemplazar desde fuera</text>
+
+        <line x1="240" y1="288" x2="328" y2="288" class="contract" marker-end="url(#b-contract)"/>
+        <line x1="602" y1="293" x2="738" y2="293" class="flow" marker-end="url(#b-flow)"/>
+        <text x="624" y="284" class="dim">push / copia</text>
+
+        <!-- wall -->
+        <line x1="670" y1="40" x2="670" y2="385" class="wall"/>
+        <text x="678" y="392" class="dim">frontera de #</text>
+
+        <!-- blocked access -->
+        <polyline points="130,160 130,200 790,200 790,150" class="blocked" marker-end="url(#b-flow)"/>
+        <text x="300" y="214" class="code lk">✗ m.#peso desde fuera: SyntaxError</text>
+      </svg>
+    </div>
+    <figcaption>Flechas verdes: acceso permitido por la interfaz pública. Línea naranja punteada: acceso directo al campo privado, que el lenguaje rechaza antes de ejecutar el código.</figcaption>
+  </figure>
+
+  <section class="points lock" aria-label="Qué hace el encapsulamiento">
+    <div>
+      <h3>El peso siempre es válido</h3>
+      <p>El campo <code>#peso</code> solo se escribe a través del setter, así que un peso negativo, cero o no numérico nunca llega a existir en un objeto.</p>
+    </div>
+    <div>
+      <h3>La lista no se puede manipular desde fuera</h3>
+      <p><code>pacientes</code> devuelve una copia: hacer <code>push</code> sobre ella no altera <code>#pacientes</code>. Solo <code>registrar()</code> agrega, y solo mascotas.</p>
+    </div>
+    <div>
+      <h3>Los errores se muestran, no se esconden</h3>
+      <p>El submit envuelve la creación en <code>try/catch</code> y <code>mostrar("error", …)</code> presenta el mensaje del setter en pantalla.</p>
+    </div>
+  </section>
+
+  <p class="lede">Juntas, las dos ideas se complementan: la abstracción define <em>qué</em> puede hacer cualquier mascota, y el encapsulamiento protege <em>cómo</em> se guarda y se valida su estado.</p>
+
+  <h2 class="sec">3. Diagrama de clases</h2>
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 960 450" role="img" aria-label="Diagrama de clases: Mascota es abstracta, con nombre, peso privado, getter y setter de peso y el método abstracto hacerSonido. Perro y Gato heredan de Mascota e implementan hacerSonido. Clinica contiene cero o más Mascota en el arreglo privado pacientes, con registrar y el getter pacientes.">
+        <defs>
+          <marker id="c-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><polygon class="head-flow" points="0,0 10,5 0,10"/></marker>
+          <marker id="c-inherit" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="12" markerHeight="12" orient="auto"><polygon class="head-inherit" points="1,1 11,6 1,11"/></marker>
+        </defs>
+
+        <!-- legend -->
+        <text x="20" y="58" class="title">Leyenda</text>
+        <text x="20" y="82" class="code">+</text><text x="40" y="82" class="dim">miembro público</text>
+        <text x="20" y="102" class="code lk">−</text><text x="40" y="102" class="dim">miembro privado (#)</text>
+        <text x="20" y="122" class="code acc">cursiva</text><text x="80" y="122" class="dim">método abstracto</text>
+        <line x1="20" y1="142" x2="60" y2="142" class="inherit" marker-end="url(#c-inherit)"/><text x="72" y="146" class="dim">herencia (extends)</text>
+        <line x1="20" y1="164" x2="60" y2="164" class="flow" marker-end="url(#c-flow)"/><text x="72" y="168" class="dim">asociación (contiene)</text>
+
+        <!-- Mascota -->
+        <rect x="340" y="40" width="280" height="210" rx="3" class="abs"/>
+        <text x="480" y="60" text-anchor="middle" class="dim">«abstracta»</text>
+        <text x="480" y="78" text-anchor="middle" class="title">Mascota</text>
+        <line x1="340" y1="88" x2="620" y2="88" class="rule"/>
+        <text x="354" y="108" class="code">+ nombre: string</text>
+        <text x="354" y="126" class="code lk">− #peso: number</text>
+        <line x1="340" y1="138" x2="620" y2="138" class="rule"/>
+        <text x="354" y="158" class="code">+ constructor(nombre, peso)</text>
+        <text x="354" y="178" class="code">+ get peso(): number</text>
+        <text x="354" y="198" class="code">+ set peso(valor): void</text>
+        <text x="354" y="218" class="code acc" font-style="italic">+ hacerSonido(): string</text>
+        <text x="354" y="238" class="dim">lanza Error si no se sobrescribe</text>
+
+        <!-- Clinica -->
+        <rect x="700" y="40" width="240" height="150" rx="3" class="box"/>
+        <text x="820" y="68" text-anchor="middle" class="title">Clinica</text>
+        <line x1="700" y1="80" x2="940" y2="80" class="rule"/>
+        <text x="714" y="100" class="code lk">− #pacientes: Mascota[]</text>
+        <line x1="700" y1="112" x2="940" y2="112" class="rule"/>
+        <text x="714" y="132" class="code">+ registrar(mascota)</text>
+        <text x="714" y="152" class="code">+ get pacientes(): Mascota[]</text>
+        <text x="714" y="174" class="dim">devuelve una copia</text>
+
+        <!-- association Clinica -> Mascota -->
+        <line x1="700" y1="125" x2="622" y2="125" class="flow" marker-end="url(#c-flow)"/>
+        <text x="680" y="117" text-anchor="end" class="code">1</text>
+        <text x="632" y="143" class="code">0..*</text>
+        <text x="640" y="110" class="dim">contiene</text>
+
+        <!-- Perro -->
+        <rect x="100" y="330" width="240" height="90" rx="3" class="box"/>
+        <text x="220" y="356" text-anchor="middle" class="title">Perro</text>
+        <line x1="100" y1="368" x2="340" y2="368" class="rule"/>
+        <text x="114" y="390" class="code">+ hacerSonido(): string</text>
+        <text x="114" y="408" class="dim">devuelve “Guau Guau”</text>
+
+        <!-- Gato -->
+        <rect x="620" y="330" width="240" height="90" rx="3" class="box"/>
+        <text x="740" y="356" text-anchor="middle" class="title">Gato</text>
+        <line x1="620" y1="368" x2="860" y2="368" class="rule"/>
+        <text x="634" y="390" class="code">+ hacerSonido(): string</text>
+        <text x="634" y="408" class="dim">devuelve “Miau Miau”</text>
+
+        <!-- inheritance -->
+        <polyline points="220,330 220,290 480,290 480,252" class="inherit" marker-end="url(#c-inherit)"/>
+        <polyline points="740,330 740,290 480,290" class="inherit"/>
+      </svg>
+    </div>
+    <figcaption><code>Perro</code> y <code>Gato</code> heredan de <code>Mascota</code> y solo implementan <code>hacerSonido()</code>. <code>Clinica</code> mantiene su lista privada de mascotas y la expone únicamente mediante <code>registrar()</code> y una copia en <code>pacientes</code>.</figcaption>
+  </figure>
+</main>
+</body>
+</html>
