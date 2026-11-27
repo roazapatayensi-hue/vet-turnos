@@ -15,6 +15,7 @@
             <select id="tipo">
                 <option value="perro">Perro</option>
                 <option value="gato">Gato</option>
+                <option value="ave">Ave</option>
             </select>
         </label>
         <label>Nombre de la Mascota
@@ -22,6 +23,12 @@
             </label>
             <label>Peso (Kg) de la Mascota
                 <input type="number" id="peso" required placeholder="Ingrese el peso de la mascota" step="0.01">
+                </label>
+                <label>
+                    <span id="etiqueta">Raza</span>
+                    <select id="extra">
+                    </select>
+                </label>
                 <button type="submit">Registrar</button>
                 <div id="mensaje"></div>
             </form>
